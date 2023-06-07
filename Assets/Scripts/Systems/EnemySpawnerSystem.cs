@@ -26,10 +26,10 @@ public partial class EnemySpawner : SystemBase
         var enemyCount = m_EnemyQuery.CalculateEntityCount();
 
         // Spawn a new enemy if there are less than 10 enemies in the game world and the time interval has passed.
-        if (enemyCount < 10 && m_TimeSinceLastSpawn >= 2f)
+        if (enemyCount < 10 && m_TimeSinceLastSpawn >= 1f)
         {
             var enemyPrefab = GetSingleton<EnemyConfig>().EnemyPrefab;
-            var random = new Random(((uint)enemyCount +1) * 0x9F6ABC1);
+            var random = new Random(((uint)enemyCount +1) * (uint)m_TimeSinceLastSpawn * 1000);
             var spawnPosition = new float3(random.NextFloat(-6,6), 0f, 16);
 
             var enemyEntity = EntityManager.Instantiate(enemyPrefab);
@@ -39,6 +39,12 @@ public partial class EnemySpawner : SystemBase
                 Scale = 1,
                 Rotation = quaternion.identity
             });
+
+            EntityManager.SetComponentData(enemyEntity, new EnemyTag
+            {
+                Size = GetSingleton<EnemyConfig>().EnemySize,
+            });
+            
             m_TimeSinceLastSpawn = 0f;
         }
 

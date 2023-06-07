@@ -3,6 +3,7 @@ using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine;
 
 namespace Systems
 {
@@ -21,22 +22,12 @@ namespace Systems
         }
 
         [BurstCompile]
-        public void OnUpdate(ref SystemState state)
+        public void OnUpdate(ref SystemState state) 
         {
             var config = SystemAPI.GetSingleton<PlayerConfig>();
             
-            var deltaTime = SystemAPI.Time.DeltaTime;
-            
             foreach (var (transform, playerInput) in SystemAPI.Query<RefRW<LocalTransform>, PlayerInput>().WithAll<PlayerTag>())
             {
-                
-                var move = new float3
-                {
-                    x = playerInput.Horizontal,
-                    y = 0,
-                    z = playerInput.Vertical
-                };  
-                
                 var input = new float3(playerInput.Horizontal, 0, playerInput.Vertical) * SystemAPI.Time.DeltaTime * config.MoveSpeed;
 
                 if (input.Equals(float3.zero))
@@ -44,9 +35,13 @@ namespace Systems
                     continue;
                 }
                 
-                transform.ValueRW.Position += move * deltaTime * config.MoveSpeed;
+                // 根据player的移动范围，限制player的移动
+                var position = transform.ValueRW.Position;
+                var newPosition = position + input;
+                newPosition.x = math.clamp(newPosition.x, config.MoveRangeX.x, config.MoveRangeX.y);
+                newPosition.z = math.clamp(newPosition.z, config.MoveRangeZ.x, config.MoveRangeZ.y);
+                transform.ValueRW.Position = newPosition;
             }
-            
         }
-    }
+    } 
 }

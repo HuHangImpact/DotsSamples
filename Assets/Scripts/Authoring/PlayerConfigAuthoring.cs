@@ -1,4 +1,5 @@
 using Unity.Entities;
+using Unity.Mathematics;
 using UnityEngine;
 
 public class PlayerConfigAuthoring : MonoBehaviour
@@ -20,6 +21,12 @@ public class PlayerConfigAuthoring : MonoBehaviour
     
     // 玩家子弹的碰撞体积
     public float BulletSize = 0.5f;
+    
+    // 玩家的可移动范围
+    public float2 MoveRangeX;
+    
+    // 玩家的可移动范围
+    public float2 MoveRangeZ;
 
     class PlayerConfigBaker : Baker<PlayerConfigAuthoring>
     {
@@ -33,7 +40,9 @@ public class PlayerConfigAuthoring : MonoBehaviour
                 BulletPrefab = GetEntity(authoring.BulletPrefab, TransformUsageFlags.Dynamic),
                 PlayerPrefab = GetEntity(authoring.PlayerPrefab, TransformUsageFlags.Dynamic),
                 PlayerSize = authoring.PlayerSize,
-                BulletSize = authoring.BulletSize
+                BulletSize = authoring.BulletSize,
+                MoveRangeX = authoring.MoveRangeX,
+                MoveRangeZ = authoring.MoveRangeZ
             });
         }
     }

@@ -1,4 +1,5 @@
 using Unity.Entities;
+using Unity.Mathematics;
 
 public struct PlayerConfig : IComponentData
 {
@@ -19,4 +20,11 @@ public struct PlayerConfig : IComponentData
     
     // 玩家子弹的碰撞体积
     public float BulletSize;
+    
+    // 玩家的可移动范围
+    public float2 MoveRangeX;
+    
+    // 玩家的可移动范围
+    public float2 MoveRangeZ;
+    
 }

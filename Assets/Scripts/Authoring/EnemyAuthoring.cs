@@ -1,10 +1,14 @@
 
 using Unity.Entities;
+using Unity.Mathematics;
 using UnityEngine;
 
 public class EnemyAuthoring : MonoBehaviour
 {
-      
+    
+    // 怪物的体积
+    public float Size;
+    
     class PlayerBaker : Baker<EnemyAuthoring>
     {
         public override void Bake(EnemyAuthoring authoring)
@@ -13,7 +17,10 @@ public class EnemyAuthoring : MonoBehaviour
             
             AddComponent<EnemyMove>(entity);
 
-            AddComponent<EnemyTag>(entity);
+            AddComponent(entity, new EnemyTag
+            {
+                Size = authoring.Size,
+            });
         }
     }
 }
@@ -21,6 +28,8 @@ public class EnemyAuthoring : MonoBehaviour
 // 怪物的标识
 public struct EnemyTag : IComponentData
 {
+    // 怪物的体积
+    public float Size;
 }
 
 public struct EnemyMove : IComponentData

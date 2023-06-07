@@ -1,8 +1,10 @@
 
+using System;
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine;
 
 public partial struct EnemyMoveSystem : ISystem
 {
@@ -22,12 +24,13 @@ public partial struct EnemyMoveSystem : ISystem
     public void OnUpdate(ref SystemState state)
     {
         var config = SystemAPI.GetSingleton<EnemyConfig>();
-            
+        var ecbSystemSingleton = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>();
+        var ecb = ecbSystemSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        
         var deltaTime = SystemAPI.Time.DeltaTime;
             
-        foreach (var transform in SystemAPI.Query<RefRW<LocalTransform>>().WithAll<EnemyTag>())
+        foreach (var transform in SystemAPI.Query<EnemyAspect>().WithAll<EnemyTag>())
         {
-                
             var move = new float3
             {
                 x = 0,
@@ -35,11 +38,19 @@ public partial struct EnemyMoveSystem : ISystem
                 z = -0.4f
             };
 
-            transform.ValueRW.Position += move * deltaTime * config.MoveSpeed;
+            transform.Position += move * deltaTime * config.MoveSpeed;
             
-            transform.ValueRW.Rotation = quaternion.Euler(0, transform.ValueRW.Position.z ,0);
+            transform.Rotation = quaternion.Euler(0, transform.Position.z ,0);
         }
-            
+        
+        // 检测敌人移动到屏幕外销毁
+        foreach (var enemy in SystemAPI.Query<EnemyAspect>().WithAll<EnemyTag>())
+        {
+            if (enemy.Position.z < -20)
+            {
+                ecb.DestroyEntity(enemy.Self);
+                Debug.Log("Enemy Destroyed");
+            }
+        }
     }
-    
 }

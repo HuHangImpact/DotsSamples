@@ -1,7 +1,6 @@
 {
   "dependencies": {
     "com.tuyoogame.yooasset": "1.4.14",
-    "com.havok.physics": "1.0.8",
     "com.unity.charactercontroller": "1.0.0-exp.22",
     "com.unity.collab-proxy": "2.0.4",
     "com.unity.entities.graphics": "1.0.8",
@@ -10,7 +9,8 @@
     "com.unity.ide.vscode": "1.2.5",
     "com.unity.inputsystem": "1.5.1",
     "com.unity.performance.profile-analyzer": "1.2.2",
-    "com.unity.render-pipelines.universal": "14.0.6",
+    "com.unity.physics": "1.0.10",
+    "com.unity.render-pipelines.universal": "14.0.7",
     "com.unity.test-framework": "1.1.33",
     "com.unity.textmeshpro": "3.0.6",
     "com.unity.timeline": "1.7.4",

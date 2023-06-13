@@ -92,34 +92,34 @@ public class BattleRoom
 
 		if (_steps == ESteps.Spawn)
 		{
-			var enemyLocation = _entityLocations[Random.Range(0, 4)];
-			Vector3 spawnPosition = new Vector3(Random.Range(-_spawnValues.x, _spawnValues.x), _spawnValues.y, _spawnValues.z);
-			Quaternion spawnRotation = Quaternion.identity;
-
-			if (enemyLocation == "enemy_ship")
-			{
-				// 生成敌人实体
-				var handle = _entitySpawner.SpawnSync(enemyLocation, _roomRoot.transform, spawnPosition, spawnRotation);
-				var entity = handle.GameObj.GetComponent<EntityEnemy>();
-				entity.InitEntity(handle);
-			}
-			else
-			{
-				// 生成小行星实体
-				var handle = _entitySpawner.SpawnSync(enemyLocation, _roomRoot.transform, spawnPosition, spawnRotation);
-				var entity = handle.GameObj.GetComponent<EntityAsteroid>();
-				entity.InitEntity(handle);
-			}
-
-			_waveSpawnCount++;
-			if (_waveSpawnCount >= EnemyCount)
-			{
-				_steps = ESteps.WaitWave;
-			}
-			else
-			{
-				_steps = ESteps.WaitSpawn;
-			}
+			// var enemyLocation = _entityLocations[Random.Range(0, 4)];
+			// Vector3 spawnPosition = new Vector3(Random.Range(-_spawnValues.x, _spawnValues.x), _spawnValues.y, _spawnValues.z);
+			// Quaternion spawnRotation = Quaternion.identity;
+			//
+			// if (enemyLocation == "enemy_ship")
+			// {
+			// 	// 生成敌人实体
+			// 	var handle = _entitySpawner.SpawnSync(enemyLocation, _roomRoot.transform, spawnPosition, spawnRotation);
+			// 	var entity = handle.GameObj.GetComponent<EntityEnemy>();
+			// 	entity.InitEntity(handle);
+			// }
+			// else
+			// {
+			// 	// 生成小行星实体
+			// 	var handle = _entitySpawner.SpawnSync(enemyLocation, _roomRoot.transform, spawnPosition, spawnRotation);
+			// 	var entity = handle.GameObj.GetComponent<EntityAsteroid>();
+			// 	entity.InitEntity(handle);
+			// }
+			//
+			// _waveSpawnCount++;
+			// if (_waveSpawnCount >= EnemyCount)
+			// {
+			// 	_steps = ESteps.WaitWave;
+			// }
+			// else
+			// {
+			// 	_steps = ESteps.WaitSpawn;
+			// }
 		}
 
 		if (_steps == ESteps.WaitSpawn)
@@ -164,16 +164,16 @@ public class BattleRoom
 		_entitySpawner = UniPooling.CreateSpawner("DefaultPackage");
 
 		// 创建游戏对象池
-		yield return _entitySpawner.CreateGameObjectPoolAsync("player_ship");
-		yield return _entitySpawner.CreateGameObjectPoolAsync("player_bullet");
-		yield return _entitySpawner.CreateGameObjectPoolAsync("enemy_ship");
-		yield return _entitySpawner.CreateGameObjectPoolAsync("enemy_bullet");
-		yield return _entitySpawner.CreateGameObjectPoolAsync("asteroid01");
-		yield return _entitySpawner.CreateGameObjectPoolAsync("asteroid02");
-		yield return _entitySpawner.CreateGameObjectPoolAsync("asteroid03");
-		yield return _entitySpawner.CreateGameObjectPoolAsync("explosion_asteroid");
-		yield return _entitySpawner.CreateGameObjectPoolAsync("explosion_enemy");
-		yield return _entitySpawner.CreateGameObjectPoolAsync("explosion_player");
+		// yield return _entitySpawner.CreateGameObjectPoolAsync("player_ship");
+		// yield return _entitySpawner.CreateGameObjectPoolAsync("player_bullet");
+		// yield return _entitySpawner.CreateGameObjectPoolAsync("enemy_ship");
+		// yield return _entitySpawner.CreateGameObjectPoolAsync("enemy_bullet");
+		// yield return _entitySpawner.CreateGameObjectPoolAsync("asteroid01");
+		// yield return _entitySpawner.CreateGameObjectPoolAsync("asteroid02");
+		// yield return _entitySpawner.CreateGameObjectPoolAsync("asteroid03");
+		// yield return _entitySpawner.CreateGameObjectPoolAsync("explosion_asteroid");
+		// yield return _entitySpawner.CreateGameObjectPoolAsync("explosion_enemy");
+		// yield return _entitySpawner.CreateGameObjectPoolAsync("explosion_player");
 
 		// 创建玩家实体对象
 		// var handle = _entitySpawner.SpawnSync("player_ship", _roomRoot.transform);
@@ -185,10 +185,10 @@ public class BattleRoom
 
 		// 监听游戏事件
 		_eventGroup.AddListener<BattleEventDefine.PlayerDead>(OnHandleEventMessage);
-		_eventGroup.AddListener<BattleEventDefine.EnemyDead>(OnHandleEventMessage);
-		_eventGroup.AddListener<BattleEventDefine.AsteroidExplosion>(OnHandleEventMessage);
-		_eventGroup.AddListener<BattleEventDefine.PlayerFireBullet>(OnHandleEventMessage);
-		_eventGroup.AddListener<BattleEventDefine.EnemyFireBullet>(OnHandleEventMessage);
+		// _eventGroup.AddListener<BattleEventDefine.EnemyDead>(OnHandleEventMessage);
+		// _eventGroup.AddListener<BattleEventDefine.AsteroidExplosion>(OnHandleEventMessage);
+		// _eventGroup.AddListener<BattleEventDefine.PlayerFireBullet>(OnHandleEventMessage);
+		// _eventGroup.AddListener<BattleEventDefine.EnemyFireBullet>(OnHandleEventMessage);
 
 		_steps = ESteps.Ready;
 	}

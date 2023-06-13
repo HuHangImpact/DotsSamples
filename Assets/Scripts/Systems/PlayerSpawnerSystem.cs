@@ -21,6 +21,7 @@ public partial struct PlayerSpawnerSystem : ISystem
 
         state.EntityManager.AddComponentData(playerEntity, new PlayerTag());
 
+        state.EntityManager.AddComponentData(playerEntity, new PlayerSource());
         // 设置玩家的初始位置
         state.EntityManager.SetComponentData(playerEntity, new LocalTransform
         {

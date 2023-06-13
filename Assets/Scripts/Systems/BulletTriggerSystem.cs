@@ -25,13 +25,25 @@ public partial struct BulletTriggerSystem : ISystem
     {
         var ecb = SystemAPI.GetSingleton<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>()
             .CreateCommandBuffer(state.WorldUnmanaged);
-        
+
+        NativeReference<int> numTriggerEvents = new NativeReference<int>(0, Allocator.TempJob);
         state.Dependency = new CountNumTriggerEvents
         {
             playerTagComponents = SystemAPI.GetComponentLookup<PlayerTag>(),
             ECB = ecb,
-            
-        }.Schedule(SystemAPI.GetSingleton<SimulationSingleton>(),state.Dependency);
+            NumTriggerEvents = numTriggerEvents,
+        }.Schedule(SystemAPI.GetSingleton<SimulationSingleton>(), state.Dependency);
+        state.Dependency.Complete();
+        
+        int Source = numTriggerEvents.Value;
+        foreach (var (player, entity) in SystemAPI.Query<PlayerSource>().WithAll<PlayerTag>().WithEntityAccess())
+        {
+            var playerEntity = SystemAPI.GetComponent<PlayerSource>(entity);
+            playerEntity.Source += Source;
+            SystemAPI.SetComponent(entity, playerEntity);
+        }
+        
+        numTriggerEvents.Dispose();
     }
 
     [BurstCompile]
@@ -44,18 +56,21 @@ public partial struct BulletTriggerSystem : ISystem
     {
         [ReadOnly] public ComponentLookup<PlayerTag> playerTagComponents;
         public EntityCommandBuffer ECB;
+        public NativeReference<int> NumTriggerEvents;
+
         public void Execute(TriggerEvent triggerEvent)
         {
             Entity entityA = triggerEvent.EntityA;
             Entity entityB = triggerEvent.EntityB;
-            
+
             if (playerTagComponents.HasComponent(entityA) || playerTagComponents.HasComponent(entityB))
             {
                 return;
             }
-            
+
             ECB.DestroyEntity(entityA);
             ECB.DestroyEntity(entityB);
+            NumTriggerEvents.Value++;
         }
     }
 }

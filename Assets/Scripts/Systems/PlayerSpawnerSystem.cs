@@ -27,7 +27,7 @@ public partial struct PlayerSpawnerSystem : ISystem
             Position = new float3
             {
                 x = 0,
-                y = -4,
+                y = 0,
                 z = 0,
             },
             Scale = 1,

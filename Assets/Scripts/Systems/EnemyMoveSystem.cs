@@ -11,6 +11,7 @@ public partial struct EnemyMoveSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<BeginSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<EnemyMove>();
         state.RequireForUpdate<EnemyConfig>();
     }
@@ -52,5 +53,6 @@ public partial struct EnemyMoveSystem : ISystem
                 Debug.Log("Enemy Destroyed");
             }
         }
+        
     }
 }

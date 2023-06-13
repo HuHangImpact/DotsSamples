@@ -3,11 +3,16 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Physics;
+using Unity.Physics.Stateful;
+using Unity.Physics.Systems;
 using Unity.Rendering;
 using Unity.Transforms;
 using UnityEngine;
 
-[UpdateAfter(typeof(PlayerMoveSystem))]
+[RequireMatchingQueriesForUpdate]
+[UpdateBefore(typeof(PlayerMoveSystem))]
+[UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [BurstCompile]
 public partial struct PlayerShootingSystem : ISystem
 {
@@ -16,8 +21,7 @@ public partial struct PlayerShootingSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<Shooting>();
-
+        state.RequireForUpdate<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<PlayerConfig>();
     }
 
@@ -40,46 +44,46 @@ public partial struct PlayerShootingSystem : ISystem
 
         _nextFireTime = playConfig.FireRate;
 
-        var ecbSystemSingleton = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>();
-        var ecb = ecbSystemSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-        
+        var ecb = SystemAPI.GetSingleton<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>()
+            .CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
+
         var turretShootJob = new PlayerTurretShoot
         {
-            LocalTransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true),
             ECB = ecb,
             PlayerConfig = SystemAPI.GetSingleton<PlayerConfig>(),
         };
 
-        turretShootJob.Schedule();
+        turretShootJob.ScheduleParallel();
     }
 }
 
 [WithAll(typeof(Shooting))]
-[BurstCompile]
 public partial struct PlayerTurretShoot : IJobEntity
 {
-    [ReadOnly] public ComponentLookup<LocalTransform> LocalTransformLookup;
-    public EntityCommandBuffer ECB;
-
+    public EntityCommandBuffer.ParallelWriter ECB;
     public PlayerConfig PlayerConfig;
 
-    public void Execute(LocalToWorld localToWorld)
+    public void Execute([ChunkIndexInQuery] int index, ref LocalTransform FireLocalTransform,
+        ref LocalToWorld localToWorld)
     {
-        var instance = ECB.Instantiate(PlayerConfig.BulletPrefab);
+        var instance = ECB.Instantiate(index, PlayerConfig.BulletPrefab);
 
-        var spawnLocalToWorld = localToWorld;
+        float3 firePosition = new float3((localToWorld.Position + localToWorld.Forward).x, 0,
+            (localToWorld.Position + localToWorld.Forward).z);
 
-        ECB.SetComponent(instance, new LocalTransform
+        LocalTransform localTransform = LocalTransform.FromPositionRotationScale(
+            firePosition,
+            FireLocalTransform.Rotation,
+            FireLocalTransform.Scale);
+
+        ECB.SetComponent(index, instance, localTransform);
+
+        ECB.SetComponent(index, instance, new PhysicsVelocity
         {
-            Position = spawnLocalToWorld.Position + localToWorld.Forward,
-            Scale = 1.0f,
+            Linear = localToWorld.Forward * 20f,
+            Angular = float3.zero,
         });
 
-        ECB.SetComponent(instance, new Bullet
-        {
-            // 根据i值一个扇形角度
-            Velocity = localToWorld.Forward * 20.0f,
-            moveSpeed = 3.0f,
-        });
+        ECB.AddComponent<Bullet>(index, instance);
     }
 }

@@ -1,53 +1,75 @@
 using System;
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine;
 using Random = Unity.Mathematics.Random;
 
 [UpdateBefore(typeof(TransformSystemGroup))]
-[UpdateAfter(typeof(EnemyMoveSystem))]
+[UpdateBefore(typeof(EnemyMoveSystem))]
 [BurstCompile]
-public partial class EnemySpawner : SystemBase
+public partial struct EnemySpawner : ISystem
 {
     private EntityQuery m_EnemyQuery;
-    private float m_TimeSinceLastSpawn = 10;
+    private float m_TimeSinceLastSpawn;
 
     [BurstCompile]
-    protected override void OnCreate()
+    public void OnCreate(ref SystemState state)
     {
-        m_EnemyQuery = GetEntityQuery(ComponentType.ReadOnly<EnemyTag>());
+        state.RequireForUpdate<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<EnemyConfig>();
     }
 
     [BurstCompile]
-    [Obsolete("Obsolete")]
-    protected override void OnUpdate()
+    public void OnUpdate(ref SystemState state)
     {
+        m_EnemyQuery = state.EntityManager.CreateEntityQuery(typeof(EnemyTag));
         var enemyCount = m_EnemyQuery.CalculateEntityCount();
+        var config = SystemAPI.GetSingleton<EnemyConfig>();
+        var ecb = SystemAPI.GetSingleton<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>()
+            .CreateCommandBuffer(state.WorldUnmanaged);
 
-        // Spawn a new enemy if there are less than 10 enemies in the game world and the time interval has passed.
         if (enemyCount < 10 && m_TimeSinceLastSpawn >= 1f)
         {
-            var enemyPrefab = GetSingleton<EnemyConfig>().EnemyPrefab;
-            var random = new Random(((uint)enemyCount +1) * (uint)m_TimeSinceLastSpawn * 1000);
-            var spawnPosition = new float3(random.NextFloat(-6,6), 0f, 16);
-
-            var enemyEntity = EntityManager.Instantiate(enemyPrefab);
-            EntityManager.SetComponentData(enemyEntity, new LocalTransform
+            new EnemySpawnerJob
             {
-                Position = spawnPosition,
-                Scale = 1,
-                Rotation = quaternion.identity
-            });
-
-            EntityManager.SetComponentData(enemyEntity, new EnemyTag
-            {
-                Size = GetSingleton<EnemyConfig>().EnemySize,
-            });
+                ECB = ecb.AsParallelWriter(),
+                EnemyConfig = config,
+                TimeSinceLastSpawn = m_TimeSinceLastSpawn,
+                enemyCount = enemyCount
+            }.ScheduleParallel();
             
             m_TimeSinceLastSpawn = 0f;
         }
 
         m_TimeSinceLastSpawn += SystemAPI.Time.DeltaTime;
     }
+    [WithAll(typeof(Shooting))]
+    public partial struct EnemySpawnerJob : IJobEntity
+    {
+        public EntityCommandBuffer.ParallelWriter ECB;
+        public EnemyConfig EnemyConfig;
+        public float TimeSinceLastSpawn;
+        public int enemyCount;
+        
+        public void Execute([ChunkIndexInQuery] int index, ref LocalTransform FireLocalTransform,
+            ref LocalToWorld localToWorld)
+        {
+            var instance = ECB.Instantiate(index, EnemyConfig.EnemyPrefab);
+            var random = new Random(((uint)enemyCount + 1) * (uint)TimeSinceLastSpawn * 1000);
+            var spawnPosition = new float3(random.NextFloat(-6, 6), 0f, 16);
+
+            LocalTransform localTransform = LocalTransform.FromPositionRotationScale(
+                spawnPosition,
+                FireLocalTransform.Rotation,
+                FireLocalTransform.Scale);
+
+            ECB.SetComponent(index, instance, localTransform);
+            
+            ECB.AddComponent<EnemyTag>(index, instance);
+        }
+    }
 }
+

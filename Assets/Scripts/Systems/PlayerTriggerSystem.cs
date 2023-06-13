@@ -51,7 +51,7 @@ public partial struct PlayerTriggerSystem : ISystem
 
             if (EnemyComponents.HasComponent(entityB) && playerTagComponents.HasComponent(entityA))
             {
-                ECB.DestroyEntity(entityA);
+                ECB.AddComponent<Dead>(entityA);
                 ECB.DestroyEntity(entityB);
             }
         }

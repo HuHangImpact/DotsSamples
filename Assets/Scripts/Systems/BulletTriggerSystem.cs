@@ -30,6 +30,7 @@ public partial struct BulletTriggerSystem : ISystem
         state.Dependency = new CountNumTriggerEvents
         {
             playerTagComponents = SystemAPI.GetComponentLookup<PlayerTag>(),
+            bulletComponents = SystemAPI.GetComponentLookup<Bullet>(),
             ECB = ecb,
             NumTriggerEvents = numTriggerEvents,
         }.Schedule(SystemAPI.GetSingleton<SimulationSingleton>(), state.Dependency);
@@ -42,8 +43,6 @@ public partial struct BulletTriggerSystem : ISystem
             playerEntity.Source += Source;
             SystemAPI.SetComponent(entity, playerEntity);
         }
-        
-        numTriggerEvents.Dispose();
     }
 
     [BurstCompile]
@@ -55,6 +54,7 @@ public partial struct BulletTriggerSystem : ISystem
     public partial struct CountNumTriggerEvents : ITriggerEventsJob
     {
         [ReadOnly] public ComponentLookup<PlayerTag> playerTagComponents;
+        [ReadOnly] public ComponentLookup<Bullet> bulletComponents;
         public EntityCommandBuffer ECB;
         public NativeReference<int> NumTriggerEvents;
 
@@ -64,6 +64,11 @@ public partial struct BulletTriggerSystem : ISystem
             Entity entityB = triggerEvent.EntityB;
 
             if (playerTagComponents.HasComponent(entityA) || playerTagComponents.HasComponent(entityB))
+            {
+                return;
+            }
+
+            if (!bulletComponents.HasComponent(entityA))
             {
                 return;
             }

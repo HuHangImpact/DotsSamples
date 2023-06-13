@@ -26,7 +26,7 @@ namespace Systems
         {
             var config = SystemAPI.GetSingleton<PlayerConfig>();
             
-            foreach (var (transform, playerInput) in SystemAPI.Query<RefRW<LocalTransform>, PlayerInput>().WithAll<PlayerTag>())
+            foreach (var (transform, playerInput) in SystemAPI.Query<RefRW<LocalTransform>, PlayerInput>().WithAll<PlayerTag>().WithNone<Dead>())
             {
                 var input = new float3(playerInput.Horizontal, 0, playerInput.Vertical) * SystemAPI.Time.DeltaTime * config.MoveSpeed;
 

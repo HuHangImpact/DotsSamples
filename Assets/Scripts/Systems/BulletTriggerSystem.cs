@@ -1,6 +1,7 @@
 ﻿using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Physics.Stateful;
 using Unity.Physics.Systems;
@@ -18,11 +19,14 @@ public partial struct BulletTriggerSystem : ISystem
         state.RequireForUpdate<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<SimulationSingleton>();
         state.RequireForUpdate<Bullet>();
+        state.RequireForUpdate<ParticleSystemManager>();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        var config = SystemAPI.GetSingleton<ParticleSystemManager>();
+
         var ecb = SystemAPI.GetSingleton<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>()
             .CreateCommandBuffer(state.WorldUnmanaged);
 
@@ -33,9 +37,11 @@ public partial struct BulletTriggerSystem : ISystem
             bulletComponents = SystemAPI.GetComponentLookup<Bullet>(),
             ECB = ecb,
             NumTriggerEvents = numTriggerEvents,
+            particleSystemManager = config,
+            LocalTransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true),
         }.Schedule(SystemAPI.GetSingleton<SimulationSingleton>(), state.Dependency);
         state.Dependency.Complete();
-        
+
         int Source = numTriggerEvents.Value;
         foreach (var (player, entity) in SystemAPI.Query<PlayerSource>().WithAll<PlayerTag>().WithEntityAccess())
         {
@@ -55,6 +61,9 @@ public partial struct BulletTriggerSystem : ISystem
     {
         [ReadOnly] public ComponentLookup<PlayerTag> playerTagComponents;
         [ReadOnly] public ComponentLookup<Bullet> bulletComponents;
+        [ReadOnly] public ComponentLookup<LocalTransform> LocalTransformLookup;
+
+        public ParticleSystemManager particleSystemManager;
         public EntityCommandBuffer ECB;
         public NativeReference<int> NumTriggerEvents;
 
@@ -72,6 +81,14 @@ public partial struct BulletTriggerSystem : ISystem
             {
                 return;
             }
+
+            var entity = ECB.Instantiate(particleSystemManager.MonsterExplosionPrefab);
+            LocalTransform localTransform = LocalTransform.FromPositionRotationScale(
+                LocalTransformLookup[entityA].Position
+                , quaternion.identity
+                , 1);
+
+            ECB.SetComponent(entity, localTransform);
 
             ECB.DestroyEntity(entityA);
             ECB.DestroyEntity(entityB);

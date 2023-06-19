@@ -8,7 +8,7 @@ public struct PSTag : IComponentData
 [DisallowMultipleComponent]
 public class PSTagAuthoring : MonoBehaviour
 {
-    class JumpingSpherePSTagBaker : Baker<PSTagAuthoring>
+    class PSTagBaker : Baker<PSTagAuthoring>
     {
         public override void Bake(PSTagAuthoring authoring)
         {

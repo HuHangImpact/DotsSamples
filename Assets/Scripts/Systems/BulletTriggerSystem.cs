@@ -20,6 +20,7 @@ public partial struct BulletTriggerSystem : ISystem
         state.RequireForUpdate<SimulationSingleton>();
         state.RequireForUpdate<Bullet>();
         state.RequireForUpdate<ParticleSystemManager>();
+        state.RequireForUpdate<PhysicsWorldSingleton>();
     }
 
     [BurstCompile]
@@ -29,6 +30,8 @@ public partial struct BulletTriggerSystem : ISystem
 
         var ecb = SystemAPI.GetSingleton<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>()
             .CreateCommandBuffer(state.WorldUnmanaged);
+
+        // PhysicsWorldSingleton physicsWorldSingleton = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
 
         NativeReference<int> numTriggerEvents = new NativeReference<int>(0, Allocator.TempJob);
         state.Dependency = new CountNumTriggerEvents
@@ -41,6 +44,17 @@ public partial struct BulletTriggerSystem : ISystem
             LocalTransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true),
         }.Schedule(SystemAPI.GetSingleton<SimulationSingleton>(), state.Dependency);
         state.Dependency.Complete();
+        
+
+        // var raycastJob = new RaycastWithCustomCollectorJob
+        // {
+        //     LocalTransforms = SystemAPI.GetComponentLookup<LocalTransform>(),
+        //     ECB = ecb,
+        //     NumTriggerEvents = numTriggerEvents,
+        //     particleSystemManager = config,
+        //     PhysicsWorldSingleton = physicsWorldSingleton
+        // };
+        // state.Dependency = raycastJob.Schedule(state.Dependency);
 
         int Source = numTriggerEvents.Value;
         foreach (var (player, entity) in SystemAPI.Query<PlayerSource>().WithAll<PlayerTag>().WithEntityAccess())
@@ -93,6 +107,48 @@ public partial struct BulletTriggerSystem : ISystem
             ECB.DestroyEntity(entityA);
             ECB.DestroyEntity(entityB);
             NumTriggerEvents.Value++;
+        }
+    }
+
+
+    [BurstCompile]
+    public partial struct RaycastWithCustomCollectorJob : IJobEntity
+    {
+        public ComponentLookup<LocalTransform> LocalTransforms;
+        [Unity.Collections.ReadOnly] public PhysicsWorldSingleton PhysicsWorldSingleton;
+        public ParticleSystemManager particleSystemManager;
+        public EntityCommandBuffer ECB;
+        public NativeReference<int> NumTriggerEvents;
+
+        public void Execute(Entity entity, ref Bullet bullet)
+        {
+            var rayLocalTransform = LocalTransforms[entity];
+
+            var raycastInput = new RaycastInput
+            {
+                Start = rayLocalTransform.Position,
+                End = rayLocalTransform.Position + rayLocalTransform.Forward() * 5,
+
+                Filter = CollisionFilter.Default
+            };
+
+            var collector = new IgnoreTransparentClosestHitCollector(PhysicsWorldSingleton.CollisionWorld);
+
+            PhysicsWorldSingleton.CastRay(raycastInput, ref collector);
+
+
+            if (collector.ClosestHit.Entity != Entity.Null && collector.ClosestHit.Entity != entity)
+            {
+                var PSEntity = ECB.Instantiate(particleSystemManager.MonsterExplosionPrefab);
+                LocalTransform localTransform = LocalTransform.FromPositionRotationScale(
+                    LocalTransforms[entity].Position
+                    , quaternion.identity
+                    , 1);
+                ECB.DestroyEntity(entity);
+                ECB.SetComponent(PSEntity, localTransform);
+                ECB.DestroyEntity(collector.ClosestHit.Entity);
+                NumTriggerEvents.Value++;
+            }
         }
     }
 }
